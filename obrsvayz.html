@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Автомобильный музей</h1>
+                <p class="subtitle">История и характеристики легендарных автомобилей</p>
+            </div>
+        </div>
+        
+        <nav>
+            <div class="nav-container">
+                <ul class="nav-menu">
+                    <li><a href="index.html">Главная</a></li>
+                    <li><a href="contacts.html">Контакты</a></li>
+                    <li><a href="about.html">О нас</a></li>
+                    <li><a href="obrsvayz.html" class="active">Отзывы</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отзывы | Автомобильный музей</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Стили для формы */
+        .feedback-form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        textarea.form-control {
+            min-height: 150px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .alert-success {
+            background: #dff0d8;
+            color: #3c763d;
+        }
+        .alert-danger {
+            background: #f2dede;
+            color: #a94442;
+        }
+        .reviews-container {
+            margin-top: 30px;
+        }
+        .review {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Ваше стандартное меню и шапка -->
+    
+    <main class="container">
+        <div class="feedback-form">
+            <h2>Оставьте отзыв</h2>
+            
+            <div id="alert" class="alert" style="display: none;"></div>
+            
+            <form id="feedbackForm">
+                <div class="form-group">
+                    <label for="name">Ваше имя:</label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Ваш email:</label>
+                    <input type="email" id="email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">Ваш отзыв:</label>
+                    <textarea id="message" class="form-control" required></textarea>
+                </div>
+                
+                <button type="submit" class="btn">Отправить отзыв</button>
+            </form>
+        </div>
+        
+        <div class="reviews-container">
+            <h2>Последние отзывы</h2>
+            <div id="reviewsList"></div>
+        </div>
+    </main>
+    
+    <!-- Ваш стандартный футер -->
+    
+    <script>
+        // Функция для экранирования HTML
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Отправка формы
+        document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            
+            fetch('feedback.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=submit_feedback&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&message=${encodeURIComponent(message)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const alert = document.getElementById('alert');
+                alert.style.display = 'block';
+                alert.className = 'alert ' + (data.status === 'success' ? 'alert-success' : 'alert-danger');
+                alert.textContent = data.message;
+                
+                if (data.status === 'success') {
+                    document.getElementById('feedbackForm').reset();
+                    loadReviews();
+                }
+            });
+        });
+
+        // Загрузка отзывов
+        function loadReviews() {
+            fetch('feedback.php?action=get_feedback')
+                .then(response => response.json())
+                .then(reviews => {
+                    const container = document.getElementById('reviewsList');
+                    container.innerHTML = '';
+                    
+                    if (reviews.length === 0) {
+                        container.innerHTML = '<p>Пока нет отзывов. Будьте первым!</p>';
+                        return;
+                    }
+                    
+                    reviews.forEach(review => {
+                        const reviewEl = document.createElement('div');
+                        reviewEl.className = 'review';
+                        reviewEl.innerHTML = `
+                            <h3>${escapeHtml(review.name)}</h3>
+                            <p><small>${new Date(review.created_at).toLocaleString()}</small></p>
+                            <p>${escapeHtml(review.message).replace(/\n/g, '<br>')}</p>
+                        `;
+                        container.appendChild(reviewEl);
+                    });
+                });
+        }
+
+        // Загружаем отзывы при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadReviews);
+    </script>
+</body>
+</html>

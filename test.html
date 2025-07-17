@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToDo List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .input-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        #taskInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        #addTaskBtn {
+            padding: 10px 15px;
+            margin-left: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #addTaskBtn:hover {
+            background-color: #45a049;
+        }
+        
+        #taskList {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        #taskList li {
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .task-checkbox {
+            margin-right: 10px;
+        }
+        
+        .task-text {
+            flex: 1;
+        }
+        
+        .completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #clearCompletedBtn {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Мой Список Дел</h1>
+    
+    <div class="input-container">
+        <input type="text" id="taskInput" placeholder="Введите новую задачу...">
+        <button id="addTaskBtn">Добавить</button>
+    </div>
+    
+    <ul id="taskList"></ul>
+    
+    <div class="footer">
+        <span id="taskCounter">0 задач</span>
+        <button id="clearCompletedBtn">Очистить выполненные</button>
+    </div>
+
+    <script>
+        // Получаем элементы DOM
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const taskList = document.getElementById('taskList');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        const taskCounter = document.getElementById('taskCounter');
+
+        // Массив для хранения задач
+        let tasks = [];
+
+        // Функция добавления новой задачи
+        function addTask() {
+            const taskText = taskInput.value.trim();
+            
+            if (taskText !== '') {
+                // Создаем объект задачи
+                const task = {
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false
+                };
+                
+                // Добавляем в массив
+                tasks.push(task);
+                
+                // Сохраняем в localStorage
+                saveTasks();
+                
+                // Очищаем поле ввода
+                taskInput.value = '';
+                
+                // Обновляем список
+                renderTasks();
+            }
+        }
+
+        // Функция отрисовки задач
+        function renderTasks() {
+            // Очищаем список
+            taskList.innerHTML = '';
+            
+            // Обновляем счетчик
+            updateCounter();
+            
+            // Перебираем все задачи
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.dataset.id = task.id;
+                if (task.completed) li.classList.add('completed');
+                
+                // Чекбокс для статуса выполнения
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.completed;
+                checkbox.classList.add('task-checkbox');
+                checkbox.addEventListener('change', toggleTask);
+                
+                // Текст задачи
+                const span = document.createElement('span');
+                span.textContent = task.text;
+                span.classList.add('task-text');
+                
+                // Кнопка удаления
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Удалить';
+                deleteBtn.classList.add('delete-btn');
+                deleteBtn.addEventListener('click', deleteTask);
+                
+                // Собираем элементы вместе
+                li.appendChild(checkbox);
+                li.appendChild(span);
+                li.appendChild(deleteBtn);
+                
+                taskList.appendChild(li);
+            });
+        }
+
+        // Функция обновления счетчика задач
+        function updateCounter() {
+            const total = tasks.length;
+            const completed = tasks.filter(task => task.completed).length;
+            taskCounter.textContent = `${completed} из ${total} выполнено`;
+        }
+
+        // Функция переключения статуса задачи
+        function toggleTask(e) {
+            const taskId = parseInt(e.target.parentElement.dataset.id);
+            const task = tasks.find(t => t.id === taskId);
+            
+            if (task) {
+                task.completed = e.target.checked;
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        // Функция удаления задачи
+        function deleteTask(e) {
+            const taskId = parseInt(e.target.parentElement.dataset.id);
+            tasks = tasks.filter(task => task.id !== taskId);
+            saveTasks();
+            renderTasks();
+        }
+
+        // Функция очистки выполненных задач
+        function clearCompleted() {
+            tasks = tasks.filter(task => !task.completed);
+            saveTasks();
+            renderTasks();
+        }
+
+        // Функция сохранения задач в localStorage
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Функция загрузки задач из localStorage
+        function loadTasks() {
+            const savedTasks = localStorage.getItem('tasks');
+            if (savedTasks) {
+                tasks = JSON.parse(savedTasks);
+                renderTasks();
+            }
+        }
+
+        // Назначаем обработчики событий
+        addTaskBtn.addEventListener('click', addTask);
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+        clearCompletedBtn.addEventListener('click', clearCompleted);
+
+        // Загружаем задачи при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadTasks);
+    </script>
+</body>
+</html>
